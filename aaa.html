@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用愛點亮心情 - 國小教師情緒教育互動網頁</title>
+    
+    <!-- 匯入 Google 字型，使中文圓潤可愛 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <!-- 載入 Tailwind CSS 用於現代排版與間距 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        :root {
+            --bg-gradient-start: #ffe5ec; /* 粉紅泡泡背景漸層起點 */
+            --bg-gradient-end: #ffc2d1;   /* 粉紅泡泡背景漸層終點 */
+            --text-color: #4a4a4a;        /* 主要文字顏色 */
+            --pink-primary: #ff7096;      /* 溫馨粉紅色 */
+            --pink-dark: #ff477e;         /* 深粉紅色 */
+            --green-primary: #2bcbba;     /* 溫暖綠色 */
+            --gray-primary: #778ca3;      /* 冷漠灰色 */
+            --blue-primary: #0984e3;      /* 憂鬱藍色 */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden; /* 隱藏全網頁滾動條，保持畫面精美 */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            position: relative;
+            transition: background 1s ease;
+        }
+
+        /* 透過偽元素(::before)來實作平滑的背景顏色切換 (粉紅 <-> 憂鬱藍) */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); /* 難過的藍色漸層 */
+            opacity: 0;
+            transition: opacity 1s ease;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* 當 body 被加上 .sad-bg-mode 時，藍色漸層會淡入顯示 */
+        body.sad-bg-mode::before {
+            opacity: 1;
+        }
+
+        /* ==========================================================================
+           2. 動態背景粒子效果 (粉紅泡泡 / 藍色眼淚)
+           ========================================================================== */
+        .bubble-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 2; /* 位於背景色上方，內容下方 */
+            pointer-events: none;
+        }
+
+        /* [幸福粉紅泡泡] 樣式與向上動畫 */
+        .bubble {
+            position: absolute;
+            bottom: -100px;
+            background: rgba(255, 255, 255, 0.45);
+            border-radius: 50%;
+            box-shadow: inset -5px -5px 15px rgba(255, 182, 193, 0.5),
+                        inset 5px 5px 10px rgba(255, 255, 255, 0.8),
+                        0 4px 10px rgba(255, 192, 203, 0.2);
+            animation: floatUp 10s infinite linear;
+        }
+
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0) translateX(0) rotate(0deg);
+                opacity: 0;
+            }
+            10% { opacity: 0.8; }
+            90% { opacity: 0.8; }
+            100% {
+                transform: translateY(-115vh) translateX(60px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* [難過藍色眼淚] 樣式與向下墜落動畫 */
+        .tear-drop {
+            position: absolute;
+            top: -50px;
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            /* 利用圓角比例製作精美的「水滴/眼淚」形狀 */
+            border-radius: 0 50% 50% 50%;
+            transform: rotate(45deg);
+            opacity: 0.6;
+            box-shadow: 0 2px 6px rgba(9, 132, 227, 0.3);
+            animation: fallDown 5s linear infinite;
+        }
+
+        @keyframes fallDown {
+            0% {
+                transform: translateY(0) rotate(45deg) scale(0.8);
+                opacity: 0;
+            }
+            15% { opacity: 0.6; }
+            85% { opacity: 0.6; }
+            100% {
+                transform: translateY(115vh) rotate(45deg) scale(1.1);
+                opacity: 0;
+            }
+        }
+
+        /* ==========================================================================
+           3. 導覽列分頁設計 (Tab Navigation)
+           ========================================================================== */
+        .nav-container {
+            z-index: 10;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            width: 100%;
+            max-width: 800px;
+            padding: 0 15px;
+        }
+
+        .tab-btn {
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-weight: 700;
+        }
+
+        .tab-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        /* ==========================================================================
+           4. 右上角幸福計分板 (會隨背景轉換自動變色)
+           ========================================================================== */
+        .score-card {
+            position: absolute;
+            top: 20px;
+            right: 25px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 20px;
+            border-radius: 50px;
+            box-shadow: 0 10px 25px rgba(255, 112, 150, 0.25);
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--pink-dark);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            z-index: 10;
+            border: 2px solid white;
+            transition: all 0.5s ease;
+        }
+
+        .score-card span {
+            font-size: 1.6rem;
+            font-weight: 900;
+        }
+
+        /* 負分時，計分板轉換為冷色調 */
+        body.sad-bg-mode .score-card {
+            color: var(--blue-primary);
+            box-shadow: 0 10px 25px rgba(9, 132, 227, 0.25);
+        }
+
+        /* 手機隱藏右上角計分板以防重疊，直接改放入分頁一內部 */
+        @media (max-width: 900px) {
+            .score-card {
+                position: relative;
+                top: auto;
+                right: auto;
+                margin: 10px auto;
+                display: inline-flex;
+            }
+        }
+
+        /* ==========================================================================
+           5. 分頁顯示控制
+           ========================================================================== */
+        .tab-content {
+            display: none;
+            width: 100%;
+            max-width: 1100px;
+            height: calc(100vh - 120px);
+            padding: 10px 20px;
+            z-index: 5;
+            overflow-y: auto;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ==========================================================================
+           6. 分頁一：認識情緒（遊戲排版與對話框樣式）
+           ========================================================================== */
+        .stage-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr 280px;
+            gap: 30px;
+            align-items: center;
+            height: 100%;
+        }
+
+        @media (max-width: 900px) {
+            .stage-layout {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            .sidebar-card {
+                order: 2;
+            }
+            .center-card {
+                order: 1;
+            }
+        }
+
+        .sidebar-card {
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 24px;
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.04);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            text-align: center;
+        }
+
+        .sidebar-title {
+            font-size: 1.15rem;
+            font-weight: 900;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .title-positive { color: #20bf6b; }
+        .title-negative { color: #57606f; }
+
+        .speech-bubble {
+            background: white;
+            padding: 14px 18px;
+            border-radius: 18px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-color);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            user-select: none;
+            border: 2px solid transparent;
+        }
+
+        .bubble-positive {
+            border-color: #e3faf2;
+            border-left: 6px solid var(--green-primary);
+        }
+
+        .bubble-positive:hover {
+            transform: translateY(-3px) scale(1.03);
+            background: #f0fdf4;
+            box-shadow: 0 10px 20px rgba(43, 203, 186, 0.2);
+        }
+
+        .bubble-negative {
+            border-color: #f1f2f6;
+            border-left: 6px solid var(--gray-primary);
+        }
+
+        .bubble-negative:hover {
+            transform: translateY(-3px) scale(1.03);
+            background: #f5f6fa;
+            box-shadow: 0 10px 20px rgba(119, 140, 163, 0.2);
+        }
+
+        .speech-bubble:active {
+            transform: translateY(1px) scale(0.98);
+        }
+
+        @keyframes popBubble {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .pop-active {
+            animation: popBubble 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.2);
+        }
+
+        @keyframes shakeBubble {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+        .shake-active {
+            animation: shakeBubble 0.4s ease-in-out;
+        }
+
+        /* ==========================================================================
+           7. 學生主體與表情切換
+           ========================================================================== */
+        .center-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .student-outer {
+            position: relative;
+            width: 250px;
+            height: 250px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .student-card {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 15px 40px rgba(255, 112, 150, 0.15);
+            border: 4px solid white;
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .face-layer {
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        #face-smile, #face-laugh, #face-love {
+            opacity: 0;
+        }
+
+        .status-text {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #d1496a;
+            margin-bottom: 10px;
+            text-align: center;
+            min-height: 40px;
+            text-shadow: 0 2px 4px rgba(255, 255, 255, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        body.sad-bg-mode .status-text {
+            color: #2980b9;
+        }
+
+        .instructions {
+            background: rgba(255, 255, 255, 0.65);
+            padding: 10px 24px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            color: #7a6268;
+            font-weight: 500;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.03);
+            text-align: center;
+            line-height: 1.5;
+            animation: pulse 2s infinite ease-in-out;
+            transition: all 0.5s ease;
+        }
+
+        body.sad-bg-mode .instructions {
+            color: #4a6b82;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.8; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.02); }
+        }
+
+        /* ==========================================================================
+           8. 分頁二：情緒同義詞卡片設計
+           ========================================================================== */
+        .synonym-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 960px;
+            margin: 10px auto;
+        }
+
+        .synonym-card {
+            background: white;
+            border-radius: 24px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .synonym-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 15px 35px rgba(255, 112, 150, 0.15);
+        }
+
+        .synonym-detail {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 0;
+        }
+
+        .synonym-card.expanded .synonym-detail {
+            max-height: 180px;
+            margin-top: 15px;
+        }
+
+        /* ==========================================================================
+           9. 分頁三：評量測驗設計
+           ========================================================================== */
+        .quiz-container {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            border: 3px solid white;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+            max-width: 680px;
+            margin: 20px auto;
+            padding: 30px;
+        }
+
+        .quiz-option {
+            background: white;
+            border: 2px solid #f1f2f6;
+            border-radius: 18px;
+            padding: 16px 20px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .quiz-option:hover {
+            border-color: var(--pink-primary);
+            background: #fff5f7;
+            transform: translateY(-2px);
+        }
+
+        .quiz-option.correct {
+            border-color: #2bcbba !important;
+            background: #e3faf2 !important;
+            color: #0f5132;
+        }
+
+        .quiz-option.incorrect {
+            border-color: #ff477e !important;
+            background: #fff0f3 !important;
+            color: #842029;
+        }
+
+        /* 飛散物理粒子 */
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            z-index: 99;
+            animation: flyAndFade 1.2s forwards cubic-bezier(0.1, 0.8, 0.3, 1);
+        }
+
+        @keyframes flyAndFade {
+            0% {
+                transform: translate(0, 0) scale(0.5) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--tx), var(--ty)) scale(1.4) rotate(var(--rot));
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. 動態背景容器 (粉紅泡泡 / 藍色眼淚) -->
+    <div class="bubble-container" id="bubble-container"></div>
+
+    <!-- 2. 右上角幸福計分板 -->
+    <div class="score-card" id="score-card">
+        <span id="score-emoji">💖</span>
+        幸福指數：<span id="score-value">0</span>
+    </div>
+
+    <!-- 3. 頂部可愛導覽列 -->
+    <div class="nav-container">
+        <div class="bg-white/70 backdrop-blur-md p-2 rounded-full border-2 border-white shadow-lg flex justify-around gap-2">
+            <button class="tab-btn px-6 py-3 rounded-full text-sm md:text-base text-gray-600 bg-transparent hover:bg-white/50 active:scale-95 flex items-center gap-2" id="btn-tab1" onclick="switchTab(1)">
+                <span>🌸</span> 認識情緒
+            </button>
+            <button class="tab-btn px-6 py-3 rounded-full text-sm md:text-base text-gray-600 bg-transparent hover:bg-white/50 active:scale-95 flex items-center gap-2" id="btn-tab2" onclick="switchTab(2)">
+                <span>📚</span> 情緒同義詞
+            </button>
+            <button class="tab-btn px-6 py-3 rounded-full text-sm md:text-base text-gray-600 bg-transparent hover:bg-white/50 active:scale-95 flex items-center gap-2" id="btn-tab3" onclick="switchTab(3)">
+                <span>🎯</span> 評量測驗
+            </button>
+        </div>
+    </div>
+
+    <!-- ==========================================================================
+         4. 各分頁內容區
+         ========================================================================== -->
+    
+    <!-- 【分頁一：認識情緒（互動遊戲）】 -->
+    <div id="tab1-content" class="tab-content active">
+        <div class="stage-layout">
+            
+            <!-- 左欄：溫馨話語 -->
+            <div class="sidebar-card">
+                <div class="sidebar-title title-positive">
+                    <span>🌸</span> 溫馨關心話語 (+1分)
+                </div>
+                <div class="speech-bubble bubble-positive" id="pos-1" onclick="triggerPositive('pos-1')">
+                    「老師在這邊陪你喔！❤️」
+                </div>
+                <div class="speech-bubble bubble-positive" id="pos-2" onclick="triggerPositive('pos-2')">
+                    「今天想聊聊嗎？✨」
+                </div>
+                <div class="speech-bubble bubble-positive" id="pos-3" onclick="triggerPositive('pos-3')">
+                    「你做得很棒了。👍」
+                </div>
+            </div>
+
+            <!-- 中間欄：主角與狀態 -->
+            <div class="center-card">
+                <div class="student-outer">
+                    <div class="student-card" id="student-card">
+                        <!-- 向量小學生 SVG (戴著經典黃色小帽子) -->
+                        <svg viewBox="0 0 200 200" width="165" height="165">
+                            <defs>
+                                <filter id="blur-filter" x="-20%" y="-20%" width="140%" height="140%">
+                                    <feGaussianBlur stdDeviation="5" />
+                                </filter>
+                            </defs>
+
+                            <!-- 身體與制服領子 -->
+                            <path d="M 60 160 L 140 160 L 130 190 L 70 190 Z" fill="#4a90e2" />
+                            <path d="M 80 160 L 100 175 L 120 160 L 100 160 Z" fill="#ffffff" />
+                            <polygon points="95,175 105,175 100,185" fill="#ff477e" />
+
+                            <!-- 頭部與耳朵 -->
+                            <circle cx="55" cy="115" r="12" fill="#ffe0bd" />
+                            <circle cx="145" cy="115" r="12" fill="#ffe0bd" />
+                            <circle cx="100" cy="115" r="48" fill="#ffe0bd" />
+
+                            <!-- 黑色頭髮 -->
+                            <path d="M 50 110 Q 52 80 100 72 Q 148 80 150 110 Q 140 90 100 90 Q 60 90 50 110 Z" fill="#2c3e50" />
+
+                            <!-- 經典小學黃色帽子 -->
+                            <path d="M 46 80 Q 100 45 154 80 Z" fill="#fbc531" />
+                            <ellipse cx="100" cy="80" rx="55" ry="8" fill="#fbc531" />
+                            <circle cx="100" cy="46" r="6" fill="#f1c40f" />
+
+                            <!-- ==================== 表情圖層 1: 低落 (狀態0) ==================== -->
+                            <g id="face-sad" class="face-layer">
+                                <path d="M 72 108 Q 82 104 88 112" stroke="#2c3e50" stroke-width="3" fill="none" stroke-linecap="round" />
+                                <path d="M 128 108 Q 118 104 112 112" stroke="#2c3e50" stroke-width="3" fill="none" stroke-linecap="round" />
+                                <path d="M 78 116 Q 74 135 80 135 Q 86 135 82 116 Z" fill="#3498db" />
+                                <path d="M 122 116 Q 118 135 124 135 Q 130 135 126 116 Z" fill="#3498db" />
+                                <path d="M 90 142 Q 100 130 110 142" stroke="#2c3e50" stroke-width="4" fill="none" stroke-linecap="round" />
+                            </g>
+
+                            <!-- ==================== 表情圖層 2: 微笑 (狀態1) ==================== -->
+                            <g id="face-smile" class="face-layer">
+                                <path d="M 72 112 Q 80 104 88 112" stroke="#2c3e50" stroke-width="3.5" fill="none" stroke-linecap="round" />
+                                <path d="M 128 112 Q 120 104 112 112" stroke="#2c3e50" stroke-width="3.5" fill="none" stroke-linecap="round" />
+                                <circle cx="72" cy="122" r="10" fill="#ff7096" opacity="0.6" filter="url(#blur-filter)" />
+                                <circle cx="128" cy="122" r="10" fill="#ff7096" opacity="0.6" filter="url(#blur-filter)" />
+                                <path d="M 88 132 Q 100 145 112 132" stroke="#2c3e50" stroke-width="4" fill="none" stroke-linecap="round" />
+                            </g>
+
+                            <!-- ==================== 表情圖層 3: 大笑 (狀態2) ==================== -->
+                            <g id="face-laugh" class="face-layer">
+                                <path d="M 70 114 Q 80 102 90 114" stroke="#2c3e50" stroke-width="4.5" fill="none" stroke-linecap="round" />
+                                <path d="M 130 114 Q 120 102 110 114" stroke="#2c3e50" stroke-width="4.5" fill="none" stroke-linecap="round" />
+                                <circle cx="70" cy="122" r="14" fill="#ff3838" opacity="0.7" filter="url(#blur-filter)" />
+                                <circle cx="130" cy="122" r="14" fill="#ff3838" opacity="0.7" filter="url(#blur-filter)" />
+                                <path d="M 85 130 Q 100 155 115 130 Z" fill="#e74c3c" stroke="#2c3e50" stroke-width="3" stroke-linejoin="round" />
+                            </g>
+
+                            <!-- ==================== 表情圖層 4: 眼冒愛心 (狀態3) ==================== -->
+                            <g id="face-love" class="face-layer">
+                                <path d="M 76 118 C 72 114 66 108 66 102 C 66 98 69 95 73 95 C 75.5 95 77.5 97 78.5 99 C 79.5 97 81.5 95 84 95 C 88 95 91 98 91 102 C 91 108 85 114 81 118 Z" fill="#ff477e" stroke="#c92a54" stroke-width="1.5" />
+                                <path d="M 124 118 C 120 114 114 108 114 102 C 114 98 117 95 121 95 C 123.5 95 125.5 97 126.5 99 C 127.5 97 129.5 95 132 95 C 136 95 139 98 139 102 C 139 108 133 114 129 118 Z" fill="#ff477e" stroke="#c92a54" stroke-width="1.5" />
+                                <circle cx="70" cy="122" r="15" fill="#ff477e" opacity="0.8" filter="url(#blur-filter)" />
+                                <circle cx="130" cy="122" r="15" fill="#ff477e" opacity="0.8" filter="url(#blur-filter)" />
+                                <path d="M 85 130 Q 100 155 115 130 Z" fill="#ff477e" stroke="#2c3e50" stroke-width="3.5" stroke-linejoin="round" />
+                                <path d="M 90 138 Q 100 148 110 138 Z" fill="#ffa4b6" />
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 目前狀態描述 -->
+                <div class="status-text" id="status-text">孩子現在心裡有點酸酸的... 😭</div>
+
+                <!-- 教學提示文字 -->
+                <div class="instructions" id="instructions">
+                    💡 點擊【左側溫馨話語】給予鼓勵 (+1分)<br>
+                    💡 點擊【右側負面話語】或按【空白鍵】製造壓力 (-1分)
+                </div>
+            </div>
+
+            <!-- 右欄：負面話語 -->
+            <div class="sidebar-card">
+                <div class="sidebar-title title-negative">
+                    <span>🌧️</span> 傷人負面話語 (-1分)
+                </div>
+                <div class="speech-bubble bubble-negative" id="neg-1" onclick="triggerNegative('neg-1')">
+                    「你怎麼又考不好了？💢」
+                </div>
+                <div class="speech-bubble bubble-negative" id="neg-2" onclick="triggerNegative('neg-2')">
+                    「這點小事也要哭？😠」
+                </div>
+                <div class="speech-bubble bubble-negative" id="neg-3" onclick="triggerNegative('neg-3')">
+                    「看看別人都多乖！💨」
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 【分頁二：情緒同義詞（知識補給）】 -->
+    <div id="tab2-content" class="tab-content">
+        <div class="text-center max-w-3xl mx-auto my-4">
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">💡 情緒詞彙加油站</h2>
+            <p class="text-gray-600 text-sm md:text-base">當你覺得高興或難過時，除了說「我很開心」或「我很難過」，還可以使用哪些成語或詞彙呢？快點擊字卡，探索情緒的多彩詞彙吧！</p>
+        </div>
+
+        <div class="synonym-grid">
+            <!-- 高興 -->
+            <div class="synonym-card" onclick="toggleCard(this)">
+                <div class="text-4xl mb-3">😊</div>
+                <h3 class="text-xl font-black text-emerald-500 mb-1">高興、開心</h3>
+                <p class="text-xs text-gray-400">當願望實現或感到幸福時的感受</p>
+                <div class="synonym-detail text-left border-t pt-3 mt-3 flex flex-col gap-2">
+                    <div class="flex items-start gap-1"><span class="font-bold text-emerald-500">【手舞足蹈】</span><span>高興得手腳不自主地揮舞跳動。</span></div>
+                    <div class="flex items-start gap-1"><span class="font-bold text-emerald-500">【興高采烈】</span><span>興致勃勃，情緒非常歡樂高昂。</span></div>
+                    <div class="flex items-start gap-1"><span class="font-bold text-emerald-500">【喜上眉梢】</span><span>喜悅之情直接流露在眉眼之間。</span></div>
+                </div>
+            </div>
+
+            <!-- 難過 -->
+            <div class="synonym-card" onclick="toggleCard(this)">
+                <div class="text-4xl mb-3">😭</div>
+                <h3 class="text-xl font-black text-blue-500 mb-1">難過、悲傷</h3>
+                <p class="text-xs text-gray-400">遇到挫折或失去重要事物時的痛苦</p>
+                <div class="synonym-detail text-left border-t pt-3 mt-3 flex flex-col gap-2">
+                    <div class="flex items-start gap-1"><span class="font-bold text-blue-500">【垂頭喪氣】</span><span>低著頭神情沮喪，沒有生氣。</span></div>
+                    <div class="flex items-start gap-1"><span class="font-bold text-blue-500">【悶悶不樂】</span><span>心事重重，心情沉重憂鬱。</span></div>
+                    <div class="flex items-start gap-1"><span class="font-bold text-blue-500">【悲痛欲絕】</span><span>極度悲傷，感覺快要失去知覺。</span></div>
+                </div>
+            </div>
+
+            <!-- 生氣 -->
+            <div class="synonym-card" onclick="toggleCard(this)">
+                <div class="text-4xl mb-3">😡</div>
+                <h3 class="text-xl font-black text-orange-500 mb-1">生氣、憤怒</h3>
+                <p class="text-xs text-gray-400">當權益受損或感到不公時的抗拒感</p>
+                <div class="synonym-detail text-left border-t pt-3 mt-3 flex flex-col gap-2">
+                    <div class="flex items-start gap-1"><span class="font-bold text-orange-500">【暴跳如雷】</span><span>憤怒地跳腳、大吼，像打雷一樣。</span></div>
+                    <div class="flex items-start gap-1"><span class="font-bold text-orange-500">【怒氣沖天】</span><span>憤怒的氣燄直沖天空，形容極怒。</span></div>
+                    <div class="flex items-start gap-1"><span class="font-bold text-orange-500">【怒髮衝冠】</span><span>生氣得頭髮都直豎起來把帽子頂起。</span></div>
+                </div>
+            </div>
+
+            <!-- 害怕 -->
+            <div class="synonym-card" onclick="toggleCard(this)">
+                <div class="text-4xl mb-3">😰</div>
+                <h3 class="text-xl font-black text-purple-500 mb-1">害怕、恐懼</h3>
+                <p class="text-xs text-gray-400">面對危險或未知狀況時的心跳加速</p>
+                <div class="synonym-detail text-left border-t pt-3 mt-3 flex flex-col gap-2">
+                    <div class="flex items-start gap-1"><span class="font-bold text-purple-500">【膽戰心驚】</span><span>形容非常害怕，心臟戰抖、驚慌。</span></div>
+                    <div class="flex items-start gap-1"><span class="font-bold text-purple-500">【面如土色】</span><span>臉色嚇得像泥土一樣，毫無血色。</span></div>
+                    <div class="flex items-start gap-1"><span class="font-bold text-purple-500">【驚慌失措】</span><span>驚嚇過度而失去主張，手忙腳亂。</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 【分頁三：評量測驗（挑戰小學堂）】 -->
+    <div id="tab3-content" class="tab-content">
+        <div class="text-center max-w-3xl mx-auto my-4">
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">🎯 情緒同理心小測驗</h2>
+            <p class="text-gray-600 text-sm md:text-base">考考你的同理心與情緒調適能力！點點看，選出最溫馨正確的選項吧！</p>
+        </div>
+
+        <div class="quiz-container">
+            <div id="quiz-game">
+                <!-- 題目顯示 -->
+                <div class="mb-6">
+                    <span class="bg-pink-100 text-pink-600 text-xs font-bold px-3 py-1 rounded-full" id="quiz-progress">第 1 / 3 題</span>
+                    <h3 class="text-lg md:text-xl font-black text-gray-800 mt-3" id="quiz-question">讀取中...</h3>
+                </div>
+
+                <!-- 選項列表 -->
+                <div class="flex flex-col gap-3" id="quiz-options">
+                    <!-- JavaScript 將動態填入選項 -->
+                </div>
+
+                <!-- 回饋訊息 & 下一題按鈕 -->
+                <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t pt-5 hidden" id="quiz-footer">
+                    <p class="text-sm font-bold text-gray-700 flex items-center gap-2" id="quiz-feedback">
+                        回饋說明
+                    </p>
+                    <button class="bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold py-3 px-8 rounded-full shadow-lg active:scale-95 transition-all text-sm" onclick="nextQuestion()">
+                        下一題 ➡️
+                    </button>
+                </div>
+            </div>
+
+            <!-- 測驗結算畫面 -->
+            <div id="quiz-result" class="text-center py-6 hidden">
+                <div class="text-6xl mb-4">🏆</div>
+                <h3 class="text-2xl font-black text-gray-800 mb-2">測驗挑戰完成！</h3>
+                <p class="text-gray-600 mb-5">你的愛心分數是：<span class="text-pink-600 font-extrabold text-2xl" id="quiz-final-score">100</span> 分！</p>
+                <p class="text-sm text-gray-500 mb-6" id="quiz-summary">你是一個非常有愛心的溫馨小天使！</p>
+                <button class="bg-gradient-to-r from-emerald-400 to-teal-500 text-white font-bold py-3 px-8 rounded-full shadow-md active:scale-95 transition-all text-sm" onclick="restartQuiz()">
+                    重新挑戰 🔄
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================================
+         5. JavaScript 程式控制與物理粒子效果
+         ========================================================================== */ -->
+    <script>
+        // ----------------------------------------------------
+        // A. 狀態與全域變數宣告
+        // ----------------------------------------------------
+        let score = 0;          // 右上角得分
+        let moodState = 0;      // 心情狀態：0=低落(😭), 1=微笑(😊), 2=大笑(😆), 3=眼冒愛心(😍)
+        let currentTab = 1;     // 目前分頁
+
+        // DOM 元素選取
+        const studentCard = document.getElementById('student-card');
+        const statusText = document.getElementById('status-text');
+        const scoreValue = document.getElementById('score-value');
+        const scoreCard = document.getElementById('score-card');
+        const scoreEmoji = document.getElementById('score-emoji');
+        const instructionsText = document.getElementById('instructions');
+
+        // 四個表情圖層 SVG 組件
+        const faceSad = document.getElementById('face-sad');
+        const faceSmile = document.getElementById('face-smile');
+        const faceLaugh = document.getElementById('face-laugh');
+        const faceLove = document.getElementById('face-love');
+
+        const bubbleContainer = document.getElementById('bubble-container');
+
+        // ----------------------------------------------------
+        // B. 分頁控制邏輯
+        // ----------------------------------------------------
+        function switchTab(tabIndex) {
+            currentTab = tabIndex;
+            
+            // 更新按鈕樣式
+            for (let i = 1; i <= 3; i++) {
+                const btn = document.getElementById(`btn-tab${i}`);
+                const content = document.getElementById(`tab${i}-content`);
+                
+                if (i === tabIndex) {
+                    btn.classList.remove('text-gray-600', 'bg-transparent');
+                    btn.classList.add('bg-pink-500', 'text-white', 'shadow-md');
+                    content.classList.add('active');
+                } else {
+                    btn.classList.remove('bg-pink-500', 'text-white', 'shadow-md');
+                    btn.classList.add('text-gray-600', 'bg-transparent');
+                    content.classList.remove('active');
+                }
+            }
+        }
+
+        // 預設切換至第一分頁
+        switchTab(1);
+
+        // ----------------------------------------------------
+        // C. 幸福粉紅泡泡與憂傷藍眼淚動態背景粒子管理器
+        // ----------------------------------------------------
+        // 生成上升泡泡
+        function createBubble() {
+            const bubble = document.createElement('div');
+            bubble.classList.add('bubble');
+
+            const size = Math.random() * 50 + 30;
+            bubble.style.width = `${size}px`;
+            bubble.style.height = `${size}px`;
+            bubble.style.left = `${Math.random() * 100}vw`;
+
+            const duration = Math.random() * 7 + 8;
+            bubble.style.animationDuration = `${duration}s`;
+
+            bubbleContainer.appendChild(bubble);
+
+            setTimeout(() => { bubble.remove(); }, duration * 1000);
+        }
+
+        // 生成下落眼淚
+        function createTear() {
+            const tear = document.createElement('div');
+            tear.classList.add('tear-drop');
+
+            const size = Math.random() * 20 + 15;
+            tear.style.width = `${size}px`;
+            tear.style.height = `${size}px`;
+            tear.style.left = `${Math.random() * 100}vw`;
+
+            const duration = Math.random() * 3 + 3;
+            tear.style.animationDuration = `${duration}s`;
+
+            bubbleContainer.appendChild(tear);
+
+            setTimeout(() => { tear.remove(); }, duration * 1000);
+        }
+
+        // 定時產生粒子：根據目前分數正負判定生成哪種粒子
+        function spawnParticle() {
+            if (score >= 0) {
+                createBubble();
+            } else {
+                createTear();
+            }
+        }
+
+        // 初始化背景：預產生 10 個，隨後每 800 毫秒產生新粒子
+        for (let i = 0; i < 10; i++) {
+            spawnParticle();
+        }
+        setInterval(spawnParticle, 800);
+
+        // ----------------------------------------------------
+        // D. 遊戲正向與負向互動
+        // ----------------------------------------------------
+        function triggerPositive(elementId) {
+            const el = document.getElementById(elementId);
+            if (el) {
+                el.classList.add('pop-active');
+                setTimeout(() => el.classList.remove('pop-active'), 400);
+            }
+
+            if (moodState < 3) {
+                moodState++;
+            }
+            score++;
+            spawnParticles('heart', 15);
+            updateStudentUI();
+        }
+
+        function triggerNegative(elementId) {
+            if (elementId) {
+                const el = document.getElementById(elementId);
+                if (el) {
+                    el.classList.add('shake-active');
+                    setTimeout(() => el.classList.remove('shake-active'), 400);
+                }
+            }
+
+            if (moodState > 0) {
+                moodState--;
+            }
+            score--;
+            spawnParticles('rain', 15);
+            updateStudentUI();
+        }
+
+        // ----------------------------------------------------
+        // E. 更新學生表情與背景 UI 狀態
+        // ----------------------------------------------------
+        function updateStudentUI() {
+            scoreValue.textContent = score;
+
+            if (score < 0) {
+                document.body.classList.add('sad-bg-mode');
+                scoreEmoji.textContent = '💧';
+                instructionsText.innerHTML = `🌧️ <b>糟糕，負分了！背景下起了難過的藍色眼淚雨...</b><br>💡 快點擊【左側溫馨話語】給予孩子支持！`;
+            } else {
+                document.body.classList.remove('sad-bg-mode');
+                scoreEmoji.textContent = '💖';
+                instructionsText.innerHTML = `💡 點擊【左側溫馨話語】給予鼓勵 (+1分)<br>💡 點擊【右側負面話語】或按【空白鍵】製造壓力 (-1分)`;
+            }
+
+            scoreCard.style.transform = 'scale(1.15)';
+            setTimeout(() => { scoreCard.style.transform = 'scale(1)'; }, 120);
+
+            let scaleFactor = 1.0;
+            let description = "";
+
+            faceSad.style.opacity = '0';
+            faceSmile.style.opacity = '0';
+            faceLaugh.style.opacity = '0';
+            faceLove.style.opacity = '0';
+
+            switch (moodState) {
+                case 0:
+                    scaleFactor = 1.0;
+                    faceSad.style.opacity = '1';
+                    description = score < 0 ? "孩子被負面言論打擊，正傷心地躲在雨中哭泣... 😭⛈️" : "孩子心裡有點酸酸的... 😭";
+                    break;
+                case 1:
+                    scaleFactor = 1.18;
+                    faceSmile.style.opacity = '1';
+                    description = "孩子感受到關心，眼淚擦乾微微笑了。 😊";
+                    break;
+                case 2:
+                    scaleFactor = 1.36;
+                    faceLaugh.style.opacity = '1';
+                    description = "太好了！你的溫柔讓他哈哈大笑！ 😆";
+                    break;
+                case 3:
+                    scaleFactor = 1.55;
+                    faceLove.style.opacity = '1';
+                    description = "孩子感到無比的幸福，眼睛冒出滿滿的愛心！ 😍❤️";
+                    break;
+            }
+
+            studentCard.style.transform = `scale(${scaleFactor})`;
+            statusText.textContent = description;
+        }
+
+        // ----------------------------------------------------
+        // F. 動態物理粒子生成器 (點擊後中心發散)
+        // ----------------------------------------------------
+        function spawnParticles(type, amount, customX, customY) {
+            let centerX, centerY;
+            if (customX && customY) {
+                centerX = customX;
+                centerY = customY;
+            } else {
+                const rect = studentCard.getBoundingClientRect();
+                centerX = rect.left + rect.width / 2;
+                centerY = rect.top + rect.height / 2;
+            }
+
+            for (let i = 0; i < amount; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+
+                let fillColors = [];
+                let svgPath = "";
+
+                if (type === 'heart') {
+                    fillColors = ['#ff7096', '#ff477e', '#ff85a1', '#ff0a54', '#ffa4b6'];
+                    svgPath = `<path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>`;
+                } else {
+                    fillColors = ['#54a0ff', '#2e86de', '#8395a7', '#1dd1a1', '#4b7bec'];
+                    svgPath = `<path d="M12,2 C12,2 6,10 6,14 C6,17.3 8.7,20 12,20 C15.3,20 18,17.3 18,14 C18,10 12,2 12,2 Z"/>`;
+                }
+
+                const randomColor = fillColors[Math.floor(Math.random() * fillColors.length)];
+                particle.innerHTML = `
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="${randomColor}">
+                        ${svgPath}
+                    </svg>
+                `;
+
+                particle.style.left = `${centerX - 11}px`;
+                particle.style.top = `${centerY - 11}px`;
+
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * 110 + 70;
+                
+                const tx = Math.cos(angle) * distance;
+                const ty = Math.sin(angle) * distance + (type === 'heart' ? -40 : 40);
+                const rot = Math.random() * 360 - 180;
+
+                particle.style.setProperty('--tx', `${tx}px`);
+                particle.style.setProperty('--ty', `${ty}px`);
+                particle.style.setProperty('--rot', `${rot}deg`);
+
+                document.body.appendChild(particle);
+
+                setTimeout(() => { particle.remove(); }, 1200);
+            }
+        }
+
+        // ----------------------------------------------------
+        // G. 分頁二：情緒同義詞卡片切換
+        // ----------------------------------------------------
+        function toggleCard(cardElement) {
+            // 先關閉其他展開的卡片
+            const allCards = document.querySelectorAll('.synonym-card');
+            allCards.forEach(card => {
+                if (card !== cardElement && card.classList.contains('expanded')) {
+                    card.classList.remove('expanded');
+                }
+            });
+
+            // 切換目前的卡片
+            cardElement.classList.toggle('expanded');
+            
+            // 展開時噴出對應顏色的愛心粒子作點綴
+            if (cardElement.classList.contains('expanded')) {
+                const rect = cardElement.getBoundingClientRect();
+                const cx = rect.left + rect.width / 2;
+                const cy = rect.top + rect.height / 2;
+                spawnParticles('heart', 10, cx, cy);
+            }
+        }
+
+        // ----------------------------------------------------
+        // H. 分頁三：評量測驗遊戲邏輯
+        // ----------------------------------------------------
+        const quizData = [
+            {
+                question: "當同學在學校因為不小心弄壞玩具而哭泣時，你可以說什麼話來關心他呢？",
+                options: [
+                    { text: "「這點小事也要哭？太脆弱了吧！」", correct: false, feedback: "這句話會讓受傷的朋友更難過喔 🌧️" },
+                    { text: "「不要哭，我們再去買一隻新玩具就好了啊。」", correct: false, feedback: "雖然是好意，但可能沒有先同理到他當下的傷心喔。" },
+                    { text: "「沒關係，不要難過，我們一塊來看看能不能把它修好！❤️」", correct: true, feedback: "太棒了！用溫暖的話語提議幫忙，非常貼心！✨" }
+                ]
+            },
+            {
+                question: "當我們因為跟好朋友吵架，心裡覺得很難過、悶悶不樂時，哪一種做法「最適合」調適情緒呢？",
+                options: [
+                    { text: "寫日記畫畫、或者找老師或爸爸媽媽聊一聊 💬", correct: true, feedback: "正確！說出來可以減輕心裡的重擔，是非常棒的方法！😊" },
+                    { text: "躲在房間裡一直哭、一直生悶氣不吃飯", correct: false, feedback: "這樣不僅沒解決問題，還會讓肚子挨餓、心情更鬱悶喔。" },
+                    { text: "把氣發在別的同學身上，也對他們大吼大叫", correct: false, feedback: "把脾氣亂發在他人身上會傷害別人，是不好的喔。" }
+                ]
+            },
+            {
+                question: "在國語課中學到，形容一個人「非常害怕、全身抖個不停」的同義成語是哪一個呢？",
+                options: [
+                    { text: "【興高采烈】", correct: false, feedback: "「興高采烈」是用來形容高興的心情喔！" },
+                    { text: "【膽戰心驚】", correct: true, feedback: "沒錯！形容極度恐懼、害怕，心膽都在顫抖！👏" },
+                    { text: "【暴跳如雷】", correct: false, feedback: "「暴跳如雷」是用來形容非常生氣、憤怒喔！" }
+                ]
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+        let quizScore = 0;
+        let answerSelected = false;
+
+        function loadQuestion() {
+            answerSelected = false;
+            document.getElementById('quiz-footer').classList.add('hidden');
+            
+            const currentQuestion = quizData[currentQuestionIndex];
+            document.getElementById('quiz-progress').textContent = `第 ${currentQuestionIndex + 1} / ${quizData.length} 題`;
+            document.getElementById('quiz-question').textContent = currentQuestion.question;
+
+            const optionsContainer = document.getElementById('quiz-options');
+            optionsContainer.innerHTML = '';
+
+            currentQuestion.options.forEach((option, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'quiz-option w-full';
+                btn.innerHTML = `<span class="bg-gray-100 text-gray-700 w-8 h-8 flex items-center justify-center rounded-full font-bold text-sm">${String.fromCharCode(65 + idx)}</span> <span class="flex-1">${option.text}</span>`;
+                btn.onclick = () => selectOption(btn, option);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function selectOption(buttonElement, option) {
+            if (answerSelected) return; // 防止重複點選
+            answerSelected = true;
+
+            const feedbackEl = document.getElementById('quiz-feedback');
+            document.getElementById('quiz-footer').classList.remove('hidden');
+
+            if (option.correct) {
+                buttonElement.classList.add('correct');
+                feedbackEl.className = "text-emerald-600 font-bold text-sm md:text-base flex items-center gap-2";
+                feedbackEl.innerHTML = `<span>🎉 答對了！</span> <span class="text-xs text-gray-500 font-medium">${option.feedback}</span>`;
+                quizScore += 100 / quizData.length; // 計算分數
+                
+                // 噴散歡慶愛心粒子
+                const rect = buttonElement.getBoundingClientRect();
+                spawnParticles('heart', 12, rect.left + rect.width / 2, rect.top + rect.height / 2);
+            } else {
+                buttonElement.classList.add('incorrect');
+                feedbackEl.className = "text-rose-600 font-bold text-sm md:text-base flex items-center gap-2";
+                feedbackEl.innerHTML = `<span>😢 加油！再想想看。</span> <span class="text-xs text-gray-500 font-medium">${option.feedback}</span>`;
+            }
+
+            // 禁用其他按鈕的外觀效果
+            const allOptions = document.querySelectorAll('.quiz-option');
+            allOptions.forEach(opt => {
+                if (opt !== buttonElement) opt.style.opacity = '0.6';
+            });
+        }
+
+        function nextQuestion() {
+            if (currentQuestionIndex < quizData.length - 1) {
+                currentQuestionIndex++;
+                loadQuestion();
+            } else {
+                // 顯示測驗結算
+                document.getElementById('quiz-game').classList.add('hidden');
+                document.getElementById('quiz-result').classList.remove('hidden');
+                
+                const finalScore = Math.round(quizScore);
+                document.getElementById('quiz-final-score').textContent = finalScore;
+                
+                const summaryEl = document.getElementById('quiz-summary');
+                if (finalScore >= 90) {
+                    summaryEl.textContent = "🏅 太棒了！你是溫暖爆表的情緒小達人，大家都喜歡與你做朋友！";
+                } else if (finalScore >= 60) {
+                    summaryEl.textContent = "👍 做得好！你很有同理心，只要多學習關心他人，一定能變得更好！";
+                } else {
+                    summaryEl.textContent = "💡 加油！多練習左邊的「溫馨關心話語」，你也能成為情緒暖心小天使喔！";
+                }
+            }
+        }
+
+        function restartQuiz() {
+            currentQuestionIndex = 0;
+            quizScore = 0;
+            document.getElementById('quiz-game').classList.remove('hidden');
+            document.getElementById('quiz-result').classList.add('hidden');
+            loadQuestion();
+        }
+
+        // 初始化測驗
+        loadQuestion();
+
+        // ----------------------------------------------------
+        // I. 全域鍵盤空白鍵事件監聽器
+        // ----------------------------------------------------
+        window.addEventListener('keydown', function(event) {
+            // 只有在分頁一「認識情緒」開啟時，空白鍵才會觸發負面扣分，避免干擾其他分頁與測驗
+            if (currentTab === 1) {
+                if (event.code === 'Space' || event.keyCode === 32) {
+                    event.preventDefault(); // 阻止空白鍵捲動網頁
+                    triggerNegative(null);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
